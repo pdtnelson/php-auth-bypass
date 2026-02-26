@@ -1,23 +1,10 @@
 <?php
 require_once 'config.php';
 
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    // VULNERABLE: loose comparison (==) instead of strict (===)
-    // Form POST values are always strings, so this is harder to exploit directly.
-    // But the pattern itself is the vulnerability — see api/login.php for the real exploit.
-    if ($username == ADMIN_USERNAME && $password == ADMIN_PASSWORD) {
-        $_SESSION['logged_in'] = true;
-        $_SESSION['username'] = ADMIN_USERNAME;
-        header('Location: dashboard.php');
-        exit;
-    } else {
-        $error = 'Invalid username or password.';
-    }
+// Redirect to dashboard if already logged in
+if (!empty($_SESSION['logged_in'])) {
+    header('Location: dashboard.php');
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -36,18 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         input[type="text"], input[type="password"] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
         button { width: 100%; padding: 0.7rem; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; }
         button:hover { background: #0056b3; }
-        .error { background: #f8d7da; color: #842029; padding: 0.6rem; border-radius: 4px; margin-bottom: 1rem; text-align: center; }
-        .api-link { margin-top: 1.5rem; text-align: center; font-size: 0.85rem; color: #666; }
-        .api-link a { color: #007bff; }
+        .error { background: #f8d7da; color: #842029; padding: 0.6rem; border-radius: 4px; margin-bottom: 1rem; text-align: center; display: none; }
     </style>
 </head>
 <body>
     <div class="login-container">
         <h1>SecureCorp Login</h1>
-        <?php if ($error): ?>
-            <div class="error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-        <form method="POST" action="">
+        <div class="error" id="error"></div>
+        <form id="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required>
@@ -58,9 +41,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <button type="submit">Log In</button>
         </form>
-        <div class="api-link">
-            Developer? Use the <a href="/api/login.php">JSON API</a> for programmatic access.
-        </div>
     </div>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+
+            fetch('/api/login.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, password: password }),
+                credentials: 'same-origin'
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.href = data.redirect || '/dashboard.php';
+                } else {
+                    var el = document.getElementById('error');
+                    el.textContent = data.message || 'Invalid credentials.';
+                    el.style.display = 'block';
+                }
+            })
+            .catch(function() {
+                var el = document.getElementById('error');
+                el.textContent = 'An error occurred. Please try again.';
+                el.style.display = 'block';
+            });
+        });
+    </script>
 </body>
 </html>
