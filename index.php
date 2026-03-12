@@ -2,6 +2,7 @@
 require_once 'config.php';
 
 // Redirect to dashboard if already logged in
+// Testing PR Webhook
 if (!empty($_SESSION['logged_in'])) {
     header('Location: dashboard.php');
     exit;
