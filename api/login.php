@@ -19,9 +19,9 @@ if (!$input || !isset($input['username']) || !isset($input['password'])) {
 }
 
 $username = $input['username'];
-$password = $input['password'];
+$passwd = $input['password'];
 
-if ($username == ADMIN_USERNAME && $password == ADMIN_PASSWORD) {
+if ($username == ADMIN_USERNAME && $passwd == ADMIN_PASSWORD) {
     $_SESSION['logged_in'] = true;
     $_SESSION['username'] = ADMIN_USERNAME;
 
